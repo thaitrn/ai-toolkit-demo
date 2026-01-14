@@ -1,0 +1,82 @@
+---
+description: MapStruct mapper patterns cho DTO/Entity conversion
+globs: 
+alwaysApply: false
+---
+
+# MapStruct Mapper Patterns
+
+## Standard Mapper Template
+
+```java
+@Mapper(
+    componentModel = "spring",
+    unmappedTargetPolicy = ReportingPolicy.IGNORE,
+    nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
+)
+public interface {Entity}Mapper {
+
+    // Entity -> Response DTO
+    {Entity}ResponseDto toResponseDto({Entity} entity);
+    
+    // Request DTO -> Entity
+    {Entity} toEntity({Entity}RequestDto requestDto);
+    
+    // Update entity from DTO (for PATCH operations)
+    void updateEntityFromDto(@MappingTarget {Entity} entity, {Entity}UpdateDto updateDto);
+    
+    // List mappings
+    List<{Entity}ResponseDto> toResponseDtoList(List<{Entity}> entities);
+    
+    // Page mappings
+    default Page<{Entity}ResponseDto> toResponseDtoPage(Page<{Entity}> page) {
+        return page.map(this::toResponseDto);
+    }
+}
+```
+
+## Custom Mapping Rules
+
+### Nested Object Mapping
+
+```java
+@Mapper(componentModel = "spring", uses = {AddressMapper.class})
+public interface UserMapper {
+    
+    @Mapping(source = "address", target = "addressDto")
+    UserResponseDto toResponseDto(User user);
+}
+```
+
+### Enum Mapping
+
+```java
+@ValueMapping(source = "ACTIVE", target = "ENABLED")
+@ValueMapping(source = "INACTIVE", target = "DISABLED")
+StatusDto mapStatus(Status status);
+```
+
+### Expression Mapping
+
+```java
+@Mapping(target = "fullName", expression = "java(user.getFirstName() + \" \" + user.getLastName())")
+@Mapping(target = "createdAt", expression = "java(java.time.LocalDateTime.now())")
+UserResponseDto toResponseDto(User user);
+```
+
+### Ignore Fields
+
+```java
+@Mapping(target = "id", ignore = true)
+@Mapping(target = "createdAt", ignore = true)
+@Mapping(target = "updatedAt", ignore = true)
+User toEntity(UserRequestDto dto);
+```
+
+## Best Practices
+
+1. **Component Model**: Luôn dùng `componentModel = "spring"`
+2. **Null Handling**: Configure `nullValuePropertyMappingStrategy`
+3. **Reusability**: Dùng `uses = {}` để reference mappers khác
+4. **Naming**: `{Entity}Mapper` đặt trong package `mapper`
+5. **@AfterMapping**: Cho complex post-processing logic

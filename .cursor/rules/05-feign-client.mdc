@@ -1,0 +1,133 @@
+---
+description: Feign Client patterns cho microservices communication
+globs: 
+alwaysApply: false
+---
+
+# Feign Client Patterns
+
+## Standard Feign Client Template
+
+```java
+@FeignClient(
+    name = "{service-name}-client",
+    url = "${integration.{service-name}.url}",
+    configuration = FeignConfig.class,
+    fallbackFactory = {ServiceName}ClientFallbackFactory.class
+)
+public interface {ServiceName}Client {
+
+    @GetMapping("/api/v1/resources/{id}")
+    ResponseEntity<ResourceResponse> getResource(@PathVariable("id") Long id);
+    
+    @PostMapping("/api/v1/resources")
+    ResponseEntity<ResourceResponse> createResource(@RequestBody CreateResourceRequest request);
+    
+    @PutMapping("/api/v1/resources/{id}")
+    ResponseEntity<ResourceResponse> updateResource(
+        @PathVariable("id") Long id,
+        @RequestBody UpdateResourceRequest request
+    );
+    
+    @DeleteMapping("/api/v1/resources/{id}")
+    ResponseEntity<Void> deleteResource(@PathVariable("id") Long id);
+}
+```
+
+## Feign Configuration
+
+```java
+@Configuration
+public class FeignConfig {
+
+    @Bean
+    public RequestInterceptor requestInterceptor() {
+        return template -> {
+            // Add correlation ID
+            template.header("X-Correlation-ID", MDC.get("correlationId"));
+            
+            // Add authentication (if needed)
+            template.header("Authorization", "Bearer " + getToken());
+        };
+    }
+    
+    @Bean
+    public ErrorDecoder errorDecoder() {
+        return new CustomErrorDecoder();
+    }
+    
+    @Bean
+    public Retryer retryer() {
+        return new Retryer.Default(100, 1000, 3);
+    }
+}
+```
+
+## Fallback Factory
+
+```java
+@Component
+@Slf4j
+public class {ServiceName}ClientFallbackFactory implements FallbackFactory<{ServiceName}Client> {
+
+    @Override
+    public {ServiceName}Client create(Throwable cause) {
+        log.error("Fallback triggered for {ServiceName}Client", cause);
+        
+        return new {ServiceName}Client() {
+            @Override
+            public ResponseEntity<ResourceResponse> getResource(Long id) {
+                throw new ServiceUnavailableException("{ServiceName} service is unavailable");
+            }
+            
+            // Other fallback implementations...
+        };
+    }
+}
+```
+
+## Custom Error Decoder
+
+```java
+public class CustomErrorDecoder implements ErrorDecoder {
+
+    @Override
+    public Exception decode(String methodKey, Response response) {
+        return switch (response.status()) {
+            case 400 -> new BadRequestException("Bad request to external service");
+            case 404 -> new NotFoundException("Resource not found in external service");
+            case 503 -> new ServiceUnavailableException("External service unavailable");
+            default -> new IntegrationException("Error calling external service");
+        };
+    }
+}
+```
+
+## Configuration Properties
+
+```yaml
+# application.yml
+integration:
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8081}
+  booking-service:
+    url: ${BOOKING_SERVICE_URL:http://localhost:8082}
+
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 10000
+        loggerLevel: BASIC
+  circuitbreaker:
+    enabled: true
+```
+
+## Best Practices
+
+1. **Timeout Configuration**: Luôn set connect và read timeout
+2. **Circuit Breaker**: Enable Resilience4j circuit breaker
+3. **Fallback**: Implement FallbackFactory cho graceful degradation
+4. **Logging**: Configure appropriate log level
+5. **Error Handling**: Custom ErrorDecoder cho meaningful exceptions

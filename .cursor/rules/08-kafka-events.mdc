@@ -1,0 +1,177 @@
+---
+description: Kafka event patterns cho async messaging
+globs: 
+alwaysApply: false
+---
+
+# Kafka Event Patterns
+
+## Event Structure
+
+```java
+@Data
+@Builder
+public class DomainEvent<T> {
+    private String eventId;           // UUID
+    private String eventType;         // e.g., "user.created"
+    private String aggregateId;       // Entity ID
+    private String aggregateType;     // e.g., "User"
+    private Instant timestamp;
+    private String correlationId;     // For distributed tracing
+    private String source;            // Service name
+    private T payload;
+    private Map<String, String> metadata;
+}
+```
+
+## Kafka Producer
+
+```java
+@Component
+@Slf4j
+@RequiredArgsConstructor
+public class UserEventProducer {
+
+    private final KafkaTemplate<String, DomainEvent<?>> kafkaTemplate;
+    
+    @Value("${kafka.topics.user-events}")
+    private String topic;
+    
+    public void publishUserCreated(User user) {
+        var event = DomainEvent.<UserCreatedPayload>builder()
+            .eventId(UUID.randomUUID().toString())
+            .eventType("user.created")
+            .aggregateId(user.getId().toString())
+            .aggregateType("User")
+            .timestamp(Instant.now())
+            .correlationId(MDC.get("correlationId"))
+            .source("user-service")
+            .payload(new UserCreatedPayload(user.getId(), user.getEmail()))
+            .build();
+            
+        kafkaTemplate.send(topic, user.getId().toString(), event)
+            .whenComplete((result, ex) -> {
+                if (ex != null) {
+                    log.error("Failed to publish event: {}", event.getEventId(), ex);
+                } else {
+                    log.info("Published event: {} to partition: {}", 
+                        event.getEventId(), 
+                        result.getRecordMetadata().partition());
+                }
+            });
+    }
+}
+```
+
+## Kafka Consumer
+
+```java
+@Component
+@Slf4j
+@RequiredArgsConstructor
+public class BookingEventConsumer {
+
+    private final BookingService bookingService;
+    
+    @KafkaListener(
+        topics = "${kafka.topics.booking-events}",
+        groupId = "${kafka.consumer.group-id}",
+        containerFactory = "kafkaListenerContainerFactory"
+    )
+    @Transactional
+    public void handleBookingEvent(
+            @Payload DomainEvent<BookingPayload> event,
+            @Header(KafkaHeaders.RECEIVED_KEY) String key,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset) {
+        
+        log.info("Received event: {} from partition: {}, offset: {}", 
+            event.getEventType(), partition, offset);
+            
+        try {
+            MDC.put("correlationId", event.getCorrelationId());
+            
+            switch (event.getEventType()) {
+                case "booking.created" -> handleBookingCreated(event.getPayload());
+                case "booking.cancelled" -> handleBookingCancelled(event.getPayload());
+                default -> log.warn("Unknown event type: {}", event.getEventType());
+            }
+        } catch (Exception e) {
+            log.error("Error processing event: {}", event.getEventId(), e);
+            throw e; // Let Kafka retry mechanism handle
+        } finally {
+            MDC.clear();
+        }
+    }
+    
+    private void handleBookingCreated(BookingPayload payload) {
+        bookingService.processNewBooking(payload);
+    }
+    
+    private void handleBookingCancelled(BookingPayload payload) {
+        bookingService.processCancellation(payload);
+    }
+}
+```
+
+## Kafka Configuration
+
+```java
+@Configuration
+@EnableKafka
+public class KafkaConfig {
+
+    @Bean
+    public ProducerFactory<String, DomainEvent<?>> producerFactory(
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers) {
+        
+        Map<String, Object> config = new HashMap<>();
+        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        config.put(ProducerConfig.ACKS_CONFIG, "all");
+        config.put(ProducerConfig.RETRIES_CONFIG, 3);
+        config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        
+        return new DefaultKafkaProducerFactory<>(config);
+    }
+    
+    @Bean
+    public KafkaTemplate<String, DomainEvent<?>> kafkaTemplate(
+            ProducerFactory<String, DomainEvent<?>> producerFactory) {
+        return new KafkaTemplate<>(producerFactory);
+    }
+    
+    @Bean
+    public ConsumerFactory<String, DomainEvent<?>> consumerFactory(
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
+            @Value("${kafka.consumer.group-id}") String groupId) {
+        
+        Map<String, Object> config = new HashMap<>();
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+        
+        return new DefaultKafkaConsumerFactory<>(config);
+    }
+}
+```
+
+## Topic Naming Convention
+
+- Pattern: `{domain}.{entity}.{action}`
+- Examples:
+  - `booking.order.created`
+  - `user.profile.updated`
+  - `payment.transaction.completed`
+
+## Best Practices
+
+1. **Idempotency**: Consumer phải handle duplicate messages
+2. **Dead Letter Queue**: Configure DLQ cho failed messages
+3. **Correlation ID**: Propagate qua events cho tracing
+4. **Schema Evolution**: Sử dụng backward-compatible changes
+5. **Partitioning**: Key by aggregate ID cho ordering

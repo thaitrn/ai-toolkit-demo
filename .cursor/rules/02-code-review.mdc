@@ -1,0 +1,64 @@
+---
+description: Code review assistant - Giúp review code theo chuẩn của team
+globs: 
+alwaysApply: false
+---
+
+# Code Review Assistant
+
+Khi được gọi với `@code-review`, hãy thực hiện review toàn diện theo checklist sau:
+
+## Security Review
+
+- [ ] Không có hardcoded secrets, passwords, API keys
+- [ ] SQL injection: Sử dụng parameterized queries
+- [ ] Input validation đầy đủ
+- [ ] Proper authorization checks
+- [ ] Sensitive data không được log
+
+## Code Quality
+
+- [ ] Tuân thủ naming conventions
+- [ ] Methods không quá 30 dòng
+- [ ] Single Responsibility Principle
+- [ ] Không có code duplication
+- [ ] Proper exception handling
+
+## Performance
+
+- [ ] N+1 queries được tránh (dùng `@EntityGraph` hoặc `JOIN FETCH`)
+- [ ] Pagination cho list endpoints
+- [ ] Proper indexing strategies
+- [ ] Caching considerations
+
+## Testing
+
+- [ ] Unit tests coverage > 80%
+- [ ] Integration tests cho critical paths
+- [ ] Edge cases được test
+
+## Documentation
+
+- [ ] Public methods có Javadoc
+- [ ] Complex logic có comments
+- [ ] API endpoints có OpenAPI annotations
+
+## Output Format
+
+Khi review, output theo format:
+
+```
+## 🔍 Code Review Summary
+
+### ✅ Điểm tốt
+- ...
+
+### ⚠️ Cần cải thiện
+- [Severity: HIGH/MEDIUM/LOW] Issue description
+  - File: `path/to/file.java`
+  - Line: XX
+  - Recommendation: ...
+
+### 🔧 Suggestions
+- ...
+```

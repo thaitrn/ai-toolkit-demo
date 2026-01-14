@@ -1,0 +1,80 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Core Architecture - VTrip Microservices
+
+## Package Structure
+
+Mỗi microservice phải tuân theo cấu trúc sau:
+
+```
+com.vtrip.{service-name}
+├── config/           # Configuration classes
+├── controller/       # REST Controllers
+├── dto/              # Data Transfer Objects
+│   ├── request/      # Request DTOs
+│   └── response/     # Response DTOs
+├── entity/           # JPA Entities
+├── exception/        # Custom exceptions
+├── mapper/           # MapStruct mappers
+├── repository/       # JPA Repositories
+├── service/          # Business logic
+│   └── impl/         # Service implementations
+├── feign/            # Feign clients
+├── kafka/            # Kafka producers/consumers
+│   ├── producer/
+│   └── consumer/
+└── util/             # Utility classes
+```
+
+## Layered Architecture Rules
+
+1. **Controller Layer**
+   - Chỉ xử lý HTTP request/response
+   - Validate input bằng `@Valid`
+   - Delegate business logic cho Service layer
+   - KHÔNG chứa business logic
+
+2. **Service Layer**
+   - Chứa toàn bộ business logic
+   - Sử dụng `@Transactional` cho các operation write
+   - Interface + Implementation pattern
+   - Inject Repository và các Service khác qua constructor
+
+3. **Repository Layer**
+   - Extend `JpaRepository`
+   - Custom queries dùng `@Query` hoặc QueryDSL
+   - KHÔNG chứa business logic
+
+## Naming Conventions
+
+- **Entity**: `User`, `Booking`, `Flight` (singular, PascalCase)
+- **DTO**: `UserRequestDto`, `UserResponseDto`
+- **Service**: `UserService` (interface), `UserServiceImpl` (implementation)
+- **Controller**: `UserController`
+- **Repository**: `UserRepository`
+- **Mapper**: `UserMapper`
+
+## Dependencies Injection
+
+- Ưu tiên **Constructor Injection** thay vì `@Autowired`
+- Sử dụng `@RequiredArgsConstructor` của Lombok
+
+```java
+@Service
+@RequiredArgsConstructor
+public class UserServiceImpl implements UserService {
+    private final UserRepository userRepository;
+    private final UserMapper userMapper;
+}
+```
+
+## Configuration Best Practices
+
+- Environment-specific values dùng `${ENV_VAR}` placeholder
+- Secrets KHÔNG được hardcode, sử dụng AWS Secrets Manager
+- Common configs trong `application.yml`
+- Environment-specific trong `application-{env}.yml`

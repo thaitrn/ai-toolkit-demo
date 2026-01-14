@@ -1,0 +1,111 @@
+---
+description: Test generation patterns cho Java/Spring Boot
+globs: **/*Test.java,**/*Spec.java,**/test/**/*.java
+alwaysApply: false
+---
+
+# Test Generation Patterns
+
+## Unit Test Template
+
+```java
+@ExtendWith(MockitoExtension.class)
+class {ClassName}Test {
+
+    @Mock
+    private DependencyA dependencyA;
+    
+    @Mock
+    private DependencyB dependencyB;
+    
+    @InjectMocks
+    private TargetClass targetClass;
+    
+    @BeforeEach
+    void setUp() {
+        // Common setup
+    }
+    
+    @Nested
+    @DisplayName("methodName")
+    class MethodNameTests {
+        
+        @Test
+        @DisplayName("should return expected result when valid input")
+        void shouldReturnExpectedResult_WhenValidInput() {
+            // Given
+            var input = ...;
+            when(dependencyA.method()).thenReturn(...);
+            
+            // When
+            var result = targetClass.methodName(input);
+            
+            // Then
+            assertThat(result).isEqualTo(expected);
+            verify(dependencyA).method();
+        }
+        
+        @Test
+        @DisplayName("should throw exception when invalid input")
+        void shouldThrowException_WhenInvalidInput() {
+            // Given
+            var invalidInput = ...;
+            
+            // When & Then
+            assertThatThrownBy(() -> targetClass.methodName(invalidInput))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Expected error message");
+        }
+    }
+}
+```
+
+## Integration Test Template
+
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+@Transactional
+class {ClassName}IntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
+    
+    @Autowired
+    private EntityRepository repository;
+    
+    @Test
+    @DisplayName("POST /api/entities - should create entity")
+    void createEntity_shouldReturnCreated() throws Exception {
+        // Given
+        var request = new CreateEntityRequest(...);
+        
+        // When & Then
+        mockMvc.perform(post("/api/entities")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.id").exists())
+            .andExpect(jsonPath("$.name").value(request.getName()));
+    }
+}
+```
+
+## Test Naming Convention
+
+- Method: `should{ExpectedBehavior}_When{Condition}`
+- Example: `shouldReturnUser_WhenUserExists`
+
+## Assertions
+
+- Ưu tiên AssertJ over JUnit assertions
+- Sử dụng `assertThat()` fluent API
+
+## Mocking Guidelines
+
+- Mock external dependencies (DB, API, Queue)
+- KHÔNG mock internal methods của cùng class
+- Sử dụng `@MockBean` cho Spring context mocks
