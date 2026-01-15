@@ -6,28 +6,63 @@ alwaysApply: true
 
 # Core Architecture - VTrip Microservices
 
-## Package Structure
+## ⚠️ CRITICAL: Package Structure (PHẢI TUÂN THỦ CHÍNH XÁC)
 
-Mỗi microservice phải tuân theo cấu trúc sau:
+Khi tạo code mới, **BẮT BUỘC** phải tạo đúng cấu trúc folder sau:
 
 ```
-com.vtrip.{service-name}
-├── config/           # Configuration classes
-├── controller/       # REST Controllers
-├── dto/              # Data Transfer Objects
-│   ├── request/      # Request DTOs
-│   └── response/     # Response DTOs
-├── entity/           # JPA Entities
-├── exception/        # Custom exceptions
-├── mapper/           # MapStruct mappers
-├── repository/       # JPA Repositories
-├── service/          # Business logic
-│   └── impl/         # Service implementations
-├── feign/            # Feign clients
-├── kafka/            # Kafka producers/consumers
-│   ├── producer/
-│   └── consumer/
-└── util/             # Utility classes
+src/main/java/com/vtrip/{service-name}/
+├── config/                    # Configuration classes
+├── controller/                # REST Controllers
+│   └── {Entity}Controller.java
+├── dto/
+│   ├── request/               # Request DTOs
+│   │   ├── Create{Entity}RequestDto.java
+│   │   └── Update{Entity}RequestDto.java
+│   └── response/              # Response DTOs
+│       └── {Entity}ResponseDto.java
+├── entity/                    # JPA Entities
+│   └── {Entity}.java
+├── exception/                 # Custom exceptions
+│   └── NotFoundException.java
+├── mapper/                    # MapStruct mappers
+│   └── {Entity}Mapper.java
+├── repository/                # JPA Repositories
+│   └── {Entity}Repository.java
+└── service/
+    ├── {Entity}Service.java   # Interface
+    └── impl/
+        └── {Entity}ServiceImpl.java  # Implementation
+```
+
+## ⛔ KHÔNG ĐƯỢC:
+- Đặt tất cả files trong 1 folder duy nhất
+- Bỏ qua folder `impl/` cho Service implementation
+- Đặt DTO flat, không có subfolder request/response
+- Tự đặt tên file khác với pattern trên
+
+## ✅ VÍ DỤ ĐÚNG cho BookingService:
+
+```
+src/main/java/com/vtrip/booking/
+├── controller/
+│   └── BookingController.java
+├── dto/
+│   ├── request/
+│   │   ├── CreateBookingRequestDto.java
+│   │   └── UpdateBookingRequestDto.java
+│   └── response/
+│       └── BookingResponseDto.java
+├── entity/
+│   └── Booking.java
+├── mapper/
+│   └── BookingMapper.java
+├── repository/
+│   └── BookingRepository.java
+└── service/
+    ├── BookingService.java
+    └── impl/
+        └── BookingServiceImpl.java
 ```
 
 ## Layered Architecture Rules
@@ -35,46 +70,42 @@ com.vtrip.{service-name}
 1. **Controller Layer**
    - Chỉ xử lý HTTP request/response
    - Validate input bằng `@Valid`
-   - Delegate business logic cho Service layer
    - KHÔNG chứa business logic
 
 2. **Service Layer**
-   - Chứa toàn bộ business logic
-   - Sử dụng `@Transactional` cho các operation write
-   - Interface + Implementation pattern
-   - Inject Repository và các Service khác qua constructor
+   - Interface + Implementation pattern (BẮT BUỘC)
+   - `@Transactional` cho write operations
+   - `@Transactional(readOnly = true)` cho read operations
 
 3. **Repository Layer**
-   - Extend `JpaRepository`
-   - Custom queries dùng `@Query` hoặc QueryDSL
-   - KHÔNG chứa business logic
+   - Extend `JpaRepository<Entity, Long>`
+   - Custom queries dùng `@Query`
+
+## Dependency Injection (BẮT BUỘC)
+
+```java
+// ✅ ĐÚNG - Constructor injection với Lombok
+@Service
+@RequiredArgsConstructor
+public class BookingServiceImpl implements BookingService {
+    private final BookingRepository bookingRepository;
+    private final BookingMapper bookingMapper;
+}
+
+// ❌ SAI - Field injection
+@Autowired
+private BookingRepository bookingRepository;
+```
 
 ## Naming Conventions
 
-- **Entity**: `User`, `Booking`, `Flight` (singular, PascalCase)
-- **DTO**: `UserRequestDto`, `UserResponseDto`
-- **Service**: `UserService` (interface), `UserServiceImpl` (implementation)
-- **Controller**: `UserController`
-- **Repository**: `UserRepository`
-- **Mapper**: `UserMapper`
-
-## Dependencies Injection
-
-- Ưu tiên **Constructor Injection** thay vì `@Autowired`
-- Sử dụng `@RequiredArgsConstructor` của Lombok
-
-```java
-@Service
-@RequiredArgsConstructor
-public class UserServiceImpl implements UserService {
-    private final UserRepository userRepository;
-    private final UserMapper userMapper;
-}
-```
-
-## Configuration Best Practices
-
-- Environment-specific values dùng `${ENV_VAR}` placeholder
-- Secrets KHÔNG được hardcode, sử dụng AWS Secrets Manager
-- Common configs trong `application.yml`
-- Environment-specific trong `application-{env}.yml`
+| Type | Pattern | Example |
+|------|---------|---------|
+| Entity | `{Name}` | `Booking` |
+| Controller | `{Name}Controller` | `BookingController` |
+| Service Interface | `{Name}Service` | `BookingService` |
+| Service Impl | `{Name}ServiceImpl` | `BookingServiceImpl` |
+| Repository | `{Name}Repository` | `BookingRepository` |
+| Mapper | `{Name}Mapper` | `BookingMapper` |
+| Request DTO | `Create{Name}RequestDto` | `CreateBookingRequestDto` |
+| Response DTO | `{Name}ResponseDto` | `BookingResponseDto` |
