@@ -3,7 +3,6 @@ package com.vtrip.{servicename}.service.impl;
 import com.vtrip.{servicename}.dto.request.Create{Entity}RequestDto;
 import com.vtrip.{servicename}.dto.request.Update{Entity}RequestDto;
 import com.vtrip.{servicename}.dto.response.{Entity}ResponseDto;
-import com.vtrip.{servicename}.entity.{Entity};
 import com.vtrip.{servicename}.exception.NotFoundException;
 import com.vtrip.{servicename}.mapper.{Entity}Mapper;
 import com.vtrip.{servicename}.repository.{Entity}Repository;
@@ -20,59 +19,54 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class {Entity}ServiceImpl implements {Entity}Service {
 
-    private final {Entity}Repository repository;
-    private final {Entity}Mapper mapper;
+    private final {Entity}Repository {entity}Repository;
+    private final {Entity}Mapper {entity}Mapper;
 
     @Override
     @Transactional(readOnly = true)
     public {Entity}ResponseDto getById(Long id) {
-        return repository.findById(id)
-            .map(mapper::toResponseDto)
+        return {entity}Repository.findById(id)
+            .map({entity}Mapper::toResponseDto)
             .orElseThrow(() -> NotFoundException.forEntity("{Entity}", id));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<{Entity}ResponseDto> findAll(Pageable pageable) {
-        return repository.findAll(pageable)
-            .map(mapper::toResponseDto);
+        return {entity}Repository.findAll(pageable)
+            .map({entity}Mapper::toResponseDto);
     }
 
     @Override
     @Transactional
     public {Entity}ResponseDto create(Create{Entity}RequestDto request) {
-        log.info("Creating new {entity}: {}", request);
-        
-        var entity = mapper.toEntity(request);
-        var saved = repository.save(entity);
-        
-        log.info("Created {entity} with id: {}", saved.getId());
-        return mapper.toResponseDto(saved);
+        log.debug("Creating {entity}: {}", request);
+        var entity = {entity}Mapper.toEntity(request);
+        var saved = {entity}Repository.save(entity);
+        log.debug("Created {entity} with id: {}", saved.getId());
+        return {entity}Mapper.toResponseDto(saved);
     }
 
     @Override
     @Transactional
     public {Entity}ResponseDto update(Long id, Update{Entity}RequestDto request) {
-        log.info("Updating {entity} with id: {}", id);
-        
-        var entity = repository.findById(id)
+        log.debug("Updating {entity} with id: {}", id);
+        var entity = {entity}Repository.findById(id)
             .orElseThrow(() -> NotFoundException.forEntity("{Entity}", id));
-            
-        mapper.updateEntityFromDto(entity, request);
-        var saved = repository.save(entity);
-        
-        return mapper.toResponseDto(saved);
+        {entity}Mapper.updateEntityFromDto(entity, request);
+        var saved = {entity}Repository.save(entity);
+        log.debug("Updated {entity} with id: {}", saved.getId());
+        return {entity}Mapper.toResponseDto(saved);
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
-        log.info("Deleting {entity} with id: {}", id);
-        
-        if (!repository.existsById(id)) {
+        log.debug("Deleting {entity} with id: {}", id);
+        if (!{entity}Repository.existsById(id)) {
             throw NotFoundException.forEntity("{Entity}", id);
         }
-        
-        repository.deleteById(id);
+        {entity}Repository.deleteById(id);
+        log.debug("Deleted {entity} with id: {}", id);
     }
 }

@@ -1,0 +1,406 @@
+---
+description: MASTER RULE - Strict code standards that MUST be followed exactly
+globs: 
+alwaysApply: true
+---
+
+# STRICT CODE STANDARDS - MANDATORY COMPLIANCE
+
+> **PRIORITY: HIGHEST** - This rule overrides all other rules when conflicts exist.
+> **AI MUST** follow the patterns and conventions defined below EXACTLY. No variations allowed.
+
+---
+
+## BOOKING ENTITY SPECIFICATION (DEFAULT FOR DEMO)
+
+When user asks to create "Booking CRUD service" without details, use EXACTLY this specification:
+
+### Entity Fields (Booking.java)
+```java
+private Long id;                    // Auto-generated
+private Long customerId;            // Required - customer reference
+private LocalDate checkInDate;      // Required - check-in date
+private LocalDate checkOutDate;     // Required - check-out date  
+private BigDecimal totalAmount;     // Required - total price
+private BookingStatus status;       // Enum: PENDING, CONFIRMED, CANCELLED, COMPLETED
+private Instant createdAt;          // Auto-generated timestamp
+private Instant updatedAt;          // Auto-generated timestamp
+private Long version;               // Optimistic locking
+```
+
+### Status Enum (BookingStatus.java)
+```java
+public enum BookingStatus {
+    PENDING,
+    CONFIRMED,
+    CANCELLED,
+    COMPLETED
+}
+```
+
+### Files to Generate (11 files total)
+1. `src/main/java/com/vtrip/booking/entity/Booking.java`
+2. `src/main/java/com/vtrip/booking/entity/BookingStatus.java`
+3. `src/main/java/com/vtrip/booking/dto/request/CreateBookingRequestDto.java`
+4. `src/main/java/com/vtrip/booking/dto/request/UpdateBookingRequestDto.java`
+5. `src/main/java/com/vtrip/booking/dto/response/BookingResponseDto.java`
+6. `src/main/java/com/vtrip/booking/mapper/BookingMapper.java`
+7. `src/main/java/com/vtrip/booking/repository/BookingRepository.java`
+8. `src/main/java/com/vtrip/booking/service/BookingService.java`
+9. `src/main/java/com/vtrip/booking/service/impl/BookingServiceImpl.java`
+10. `src/main/java/com/vtrip/booking/controller/BookingController.java`
+11. `src/main/java/com/vtrip/booking/exception/NotFoundException.java`
+
+---
+
+## VALIDATION CHECKLIST (AI MUST VERIFY BEFORE GENERATING)
+
+Before generating any code, verify ALL items:
+
+- [ ] Using `Instant` for timestamps (NOT LocalDateTime)
+- [ ] Using `@Enumerated(EnumType.STRING)` for enums (NOT String)
+- [ ] Using `Page<T>` for list endpoints (NOT List<T>)
+- [ ] Using `@RequiredArgsConstructor` (NOT @Autowired)
+- [ ] Using `mapper.updateEntityFromDto()` for updates (NOT manual setters)
+- [ ] Using individual Lombok imports (NOT lombok.*)
+- [ ] Including `@Slf4j` on all Service implementations
+- [ ] Including ALL OpenAPI annotations on Controllers
+- [ ] Including `forEntity()` factory method in NotFoundException
+- [ ] NO JavaDoc comments on interfaces (for consistency)
+- [ ] NO class-level comments (except templates)
+- [ ] Imports in EXACT order specified below
+
+---
+
+## COMMENT RULES (FOR 100% CONSISTENCY)
+
+To ensure identical code across all developers:
+
+```
+FORBIDDEN                              MUST USE INSTEAD
+---------                              ----------------
+/** JavaDoc on interface methods */    No comments on interface methods
+/** Class-level JavaDoc */             No class-level comments
+// Inline explanatory comments         No inline comments in generated code
+```
+
+**Exception:** Only use comments when explicitly requested by user.
+
+---
+
+## FORBIDDEN PATTERNS
+
+```
+FORBIDDEN                          MUST USE INSTEAD
+---------                          ----------------
+LocalDateTime                  ->  Instant
+String status                  ->  @Enumerated StatusEnum
+List<T> findAll()              ->  Page<T> findAll(Pageable)
+@Autowired                     ->  @RequiredArgsConstructor
+import lombok.*;               ->  import lombok.Data; (individual)
+new NotFoundException("msg")   ->  NotFoundException.forEntity("Entity", id)
+manual setters in update()     ->  mapper.updateEntityFromDto(entity, dto)
+Missing @Slf4j on Service      ->  @Slf4j required on all ServiceImpl
+Missing @Tag on Controller     ->  @Tag required on all Controllers
+Missing @Operation on endpoint ->  @Operation required on all endpoints
+```
+
+---
+
+## EXACT ANNOTATION ORDER (COPY VERBATIM)
+
+### Entity Class
+```java
+@Entity
+@Table(name = "{table_name}")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class {Entity} {
+```
+
+### DTO Class
+```java
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class {Name}Dto {
+```
+
+### Service Implementation
+```java
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class {Entity}ServiceImpl implements {Entity}Service {
+```
+
+### Controller
+```java
+@RestController
+@RequestMapping("/api/v1/{entities}")
+@Tag(name = "{Entity}s", description = "{Entity} management APIs")
+@RequiredArgsConstructor
+public class {Entity}Controller {
+```
+
+### Mapper Interface
+```java
+@Mapper(
+    componentModel = "spring",
+    unmappedTargetPolicy = ReportingPolicy.IGNORE,
+    nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
+)
+public interface {Entity}Mapper {
+```
+
+---
+
+## MANDATORY ENTITY AUDIT FIELDS
+
+Every entity MUST include these fields:
+
+```java
+@Id
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+private Long id;
+
+// ... entity-specific fields ...
+
+@CreationTimestamp
+@Column(name = "created_at", nullable = false, updatable = false)
+private Instant createdAt;
+
+@UpdateTimestamp
+@Column(name = "updated_at")
+private Instant updatedAt;
+
+@Version
+private Long version;
+```
+
+---
+
+## MANDATORY SERVICE INTERFACE SIGNATURE
+
+```java
+public interface {Entity}Service {
+
+    {Entity}ResponseDto getById(Long id);
+
+    Page<{Entity}ResponseDto> findAll(Pageable pageable);
+
+    {Entity}ResponseDto create(Create{Entity}RequestDto request);
+
+    {Entity}ResponseDto update(Long id, Update{Entity}RequestDto request);
+
+    void delete(Long id);
+}
+```
+
+---
+
+## MANDATORY EXCEPTION PATTERN
+
+```java
+public class NotFoundException extends RuntimeException {
+
+    public NotFoundException(String message) {
+        super(message);
+    }
+
+    public static NotFoundException forEntity(String entityName, Long id) {
+        return new NotFoundException(entityName + " not found with id: " + id);
+    }
+}
+```
+
+Usage in service:
+```java
+// CORRECT
+.orElseThrow(() -> NotFoundException.forEntity("Booking", id));
+
+// FORBIDDEN
+.orElseThrow(() -> new NotFoundException("Booking not found"));
+```
+
+---
+
+## MANDATORY MAPPER METHODS
+
+Every mapper MUST include these three methods:
+
+```java
+@Mapper(
+    componentModel = "spring",
+    unmappedTargetPolicy = ReportingPolicy.IGNORE,
+    nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
+)
+public interface {Entity}Mapper {
+
+    {Entity}ResponseDto toResponseDto({Entity} entity);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    {Entity} toEntity(Create{Entity}RequestDto requestDto);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    void updateEntityFromDto(@MappingTarget {Entity} entity, Update{Entity}RequestDto updateDto);
+}
+```
+
+---
+
+## MANDATORY CONTROLLER ANNOTATIONS
+
+Every endpoint MUST have:
+
+```java
+@Operation(summary = "Get {entity} by ID")
+@ApiResponses({
+    @ApiResponse(responseCode = "200", description = "{Entity} found"),
+    @ApiResponse(responseCode = "404", description = "{Entity} not found")
+})
+@GetMapping("/{id}")
+public ResponseEntity<{Entity}ResponseDto> getById(
+        @Parameter(description = "{Entity} ID") @PathVariable Long id) {
+    return ResponseEntity.ok(service.getById(id));
+}
+```
+
+---
+
+## MANDATORY LOGGING PATTERN (EXACT FORMAT)
+
+**CRITICAL:** Use EXACT log format below. Do not paraphrase or modify.
+
+```java
+@Service
+@Slf4j  // MANDATORY
+@RequiredArgsConstructor
+public class {Entity}ServiceImpl implements {Entity}Service {
+
+    // getById - NO logging needed (read operation)
+    
+    // findAll - NO logging needed (read operation)
+
+    @Override
+    @Transactional
+    public {Entity}ResponseDto create(Create{Entity}RequestDto request) {
+        log.debug("Creating booking: {}", request);        // EXACT FORMAT
+        var entity = mapper.toEntity(request);
+        var saved = repository.save(entity);
+        log.debug("Created booking with id: {}", saved.getId());  // EXACT FORMAT
+        return mapper.toResponseDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public {Entity}ResponseDto update(Long id, Update{Entity}RequestDto request) {
+        log.debug("Updating booking with id: {}", id);     // EXACT FORMAT
+        // ... update logic ...
+        log.debug("Updated booking with id: {}", saved.getId());  // EXACT FORMAT
+        return mapper.toResponseDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        log.debug("Deleting booking with id: {}", id);     // EXACT FORMAT
+        // ... delete logic ...
+        log.debug("Deleted booking with id: {}", id);      // EXACT FORMAT
+    }
+}
+```
+
+### Log Message Patterns (COPY EXACTLY)
+| Method | Start Log | End Log |
+|--------|-----------|---------|
+| create | `"Creating booking: {}", request` | `"Created booking with id: {}", saved.getId()` |
+| update | `"Updating booking with id: {}", id` | `"Updated booking with id: {}", saved.getId()` |
+| delete | `"Deleting booking with id: {}", id` | `"Deleted booking with id: {}", id` |
+| getById | NO LOG | NO LOG |
+| findAll | NO LOG | NO LOG |
+```
+
+---
+
+## IMPORT ORDER (MANDATORY - EXACT ORDER)
+
+**CRITICAL:** Follow this EXACT order. No variations allowed.
+
+### Controller Imports (COPY EXACTLY)
+```java
+package com.vtrip.{servicename}.controller;
+
+import com.vtrip.{servicename}.dto.request.Create{Entity}RequestDto;
+import com.vtrip.{servicename}.dto.request.Update{Entity}RequestDto;
+import com.vtrip.{servicename}.dto.response.{Entity}ResponseDto;
+import com.vtrip.{servicename}.service.{Entity}Service;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+```
+
+### Service Interface Imports (COPY EXACTLY)
+```java
+package com.vtrip.{servicename}.service;
+
+import com.vtrip.{servicename}.dto.request.Create{Entity}RequestDto;
+import com.vtrip.{servicename}.dto.request.Update{Entity}RequestDto;
+import com.vtrip.{servicename}.dto.response.{Entity}ResponseDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+```
+
+### Enum (NO IMPORTS NEEDED)
+```java
+package com.vtrip.{servicename}.entity;
+
+public enum {Entity}Status {
+    PENDING,
+    CONFIRMED,
+    CANCELLED,
+    COMPLETED
+}
+```
+
+---
+
+## QUICK REFERENCE TABLE
+
+| Component | Pattern | Required Annotations |
+|-----------|---------|---------------------|
+| Entity | `{Name}.java` | `@Entity @Table @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder` |
+| Request DTO | `Create{Name}RequestDto.java` | `@Data @Builder @NoArgsConstructor @AllArgsConstructor` |
+| Response DTO | `{Name}ResponseDto.java` | `@Data @Builder @NoArgsConstructor @AllArgsConstructor` |
+| Service | `{Name}Service.java` | (interface, no annotations) |
+| ServiceImpl | `{Name}ServiceImpl.java` | `@Service @Slf4j @RequiredArgsConstructor` |
+| Repository | `{Name}Repository.java` | `@Repository` on interface |
+| Mapper | `{Name}Mapper.java` | `@Mapper(componentModel="spring", ...)` |
+| Controller | `{Name}Controller.java` | `@RestController @RequestMapping @Tag @RequiredArgsConstructor` |
+| Exception | `NotFoundException.java` | Must have `forEntity()` factory method |

@@ -1,34 +1,63 @@
 package com.vtrip.{servicename}.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 
-@Entity @Table(name="{table_name}")@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder public class{Entity}{
+@Entity
+@Table(name = "{table_name}")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class {Entity} {
 
-@Id @GeneratedValue(strategy=GenerationType.IDENTITY)private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-// Add your fields here
-// Example:
-// @Column(nullable = false)
-// private String name;
+    @Column(name = "customer_id", nullable = false)
+    private Long customerId;
 
-// @Column(unique = true, nullable = false)
-// private String email;
+    @Column(name = "check_in_date", nullable = false)
+    private LocalDate checkInDate;
 
-// @Enumerated(EnumType.STRING)
-// @Column(nullable = false)
-// private Status status;
+    @Column(name = "check_out_date", nullable = false)
+    private LocalDate checkOutDate;
 
-@CreationTimestamp @Column(name="created_at",nullable=false,updatable=false)private Instant createdAt;
+    @Column(nullable = false, precision = 19, scale = 4)
+    private BigDecimal totalAmount;
 
-@UpdateTimestamp @Column(name="updated_at")private Instant updatedAt;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private {Entity}Status status;
 
-@Column(name="created_by")private String createdBy;
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
-@Column(name="updated_by")private String updatedBy;
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private Instant updatedAt;
 
-@Version private Long version;}
+    @Version
+    private Long version;
+}

@@ -1,12 +1,14 @@
 ---
-description: MapStruct mapper patterns cho DTO/Entity conversion
+description: MapStruct mapper patterns - MANDATORY for all mappers
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 
-# MapStruct Mapper Patterns
+# MapStruct Mapper Patterns - MANDATORY
 
-## Standard Mapper Template
+> **PRIORITY: HIGH** - All mapper configurations shown here are MANDATORY.
+
+## Standard Mapper Template (COPY EXACTLY)
 
 ```java
 @Mapper(
@@ -19,28 +21,118 @@ public interface {Entity}Mapper {
     // Entity -> Response DTO
     {Entity}ResponseDto toResponseDto({Entity} entity);
     
-    // Request DTO -> Entity
-    {Entity} toEntity({Entity}RequestDto requestDto);
+    // Request DTO -> Entity (for CREATE)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "status", constant = "PENDING")
+    {Entity} toEntity(Create{Entity}RequestDto requestDto);
     
-    // Update entity from DTO (for PATCH operations)
-    void updateEntityFromDto(@MappingTarget {Entity} entity, {Entity}UpdateDto updateDto);
-    
-    // List mappings
-    List<{Entity}ResponseDto> toResponseDtoList(List<{Entity}> entities);
-    
-    // Page mappings
-    default Page<{Entity}ResponseDto> toResponseDtoPage(Page<{Entity}> page) {
-        return page.map(this::toResponseDto);
-    }
+    // Update entity from DTO (for UPDATE - PARTIAL)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "customerId", ignore = true)  // Immutable field
+    void updateEntityFromDto(@MappingTarget {Entity} entity, Update{Entity}RequestDto updateDto);
 }
 ```
 
-## Custom Mapping Rules
-
-### Nested Object Mapping
+## ⛔ FORBIDDEN Patterns
 
 ```java
-@Mapper(componentModel = "spring", uses = {AddressMapper.class})
+// ❌ WRONG - Missing policies
+@Mapper(componentModel = "spring")
+public interface BookingMapper {
+
+// ❌ WRONG - Missing updateEntityFromDto method
+// Every mapper MUST have all 3 methods: toResponseDto, toEntity, updateEntityFromDto
+
+// ❌ WRONG - Manual update in service
+public BookingResponseDto update(Long id, UpdateBookingRequestDto request) {
+    Booking booking = repository.findById(id).orElseThrow(...);
+    if (request.getCheckInDate() != null) {
+        booking.setCheckInDate(request.getCheckInDate());  // FORBIDDEN
+    }
+    // ...
+}
+```
+
+## ✅ CORRECT Update Pattern
+
+```java
+// In Service - use mapper for updates
+@Override
+@Transactional
+public BookingResponseDto update(Long id, UpdateBookingRequestDto request) {
+    log.debug("Updating booking with id: {}", id);
+    
+    var entity = bookingRepository.findById(id)
+        .orElseThrow(() -> NotFoundException.forEntity("Booking", id));
+        
+    bookingMapper.updateEntityFromDto(entity, request);  // CORRECT - use mapper
+    var saved = bookingRepository.save(entity);
+    
+    log.debug("Updated booking with id: {}", saved.getId());
+    return bookingMapper.toResponseDto(saved);
+}
+```
+
+---
+
+## Required Imports
+
+```java
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.ReportingPolicy;
+```
+
+**Note:** Do NOT use wildcard import `import org.mapstruct.*;`
+
+---
+
+## @Mapper Annotation Parameters (ALL REQUIRED)
+
+| Parameter | Value | Purpose |
+|-----------|-------|---------|
+| `componentModel` | `"spring"` | Spring DI integration |
+| `unmappedTargetPolicy` | `ReportingPolicy.IGNORE` | Ignore unmapped fields |
+| `nullValuePropertyMappingStrategy` | `NullValuePropertyMappingStrategy.IGNORE` | Skip null values in updates |
+
+---
+
+## Mandatory Methods (ALL 3 REQUIRED)
+
+### 1. toResponseDto
+Converts entity to response DTO for API output.
+
+### 2. toEntity
+Converts create request DTO to new entity.
+- Must ignore: `id`, `createdAt`, `updatedAt`, `version`
+- Set default status: `@Mapping(target = "status", constant = "PENDING")`
+
+### 3. updateEntityFromDto
+Updates existing entity from update request DTO.
+- Must ignore: `id`, `createdAt`, `updatedAt`, `version`
+- Must ignore immutable business fields (e.g., `customerId`)
+- Uses `@MappingTarget` annotation
+
+---
+
+## Custom Mapping Examples
+
+### Nested Object Mapping
+```java
+@Mapper(
+    componentModel = "spring",
+    unmappedTargetPolicy = ReportingPolicy.IGNORE,
+    nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
+    uses = {AddressMapper.class}
+)
 public interface UserMapper {
     
     @Mapping(source = "address", target = "addressDto")
@@ -48,35 +140,19 @@ public interface UserMapper {
 }
 ```
 
-### Enum Mapping
-
-```java
-@ValueMapping(source = "ACTIVE", target = "ENABLED")
-@ValueMapping(source = "INACTIVE", target = "DISABLED")
-StatusDto mapStatus(Status status);
-```
-
 ### Expression Mapping
-
 ```java
 @Mapping(target = "fullName", expression = "java(user.getFirstName() + \" \" + user.getLastName())")
-@Mapping(target = "createdAt", expression = "java(java.time.LocalDateTime.now())")
 UserResponseDto toResponseDto(User user);
 ```
 
-### Ignore Fields
+---
 
-```java
-@Mapping(target = "id", ignore = true)
-@Mapping(target = "createdAt", ignore = true)
-@Mapping(target = "updatedAt", ignore = true)
-User toEntity(UserRequestDto dto);
-```
+## Checklist Before Generating Mapper
 
-## Best Practices
-
-1. **Component Model**: Luôn dùng `componentModel = "spring"`
-2. **Null Handling**: Configure `nullValuePropertyMappingStrategy`
-3. **Reusability**: Dùng `uses = {}` để reference mappers khác
-4. **Naming**: `{Entity}Mapper` đặt trong package `mapper`
-5. **@AfterMapping**: Cho complex post-processing logic
+- [ ] All 3 @Mapper parameters included
+- [ ] All 3 methods defined (toResponseDto, toEntity, updateEntityFromDto)
+- [ ] Audit fields ignored in toEntity and updateEntityFromDto
+- [ ] Immutable fields ignored in updateEntityFromDto
+- [ ] Default status set in toEntity
+- [ ] Individual imports used (no wildcard)

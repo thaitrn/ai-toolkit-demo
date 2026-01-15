@@ -1,0 +1,204 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║  VERIFICATION: Comparing dev1-minh vs dev2-linh vs dev3-hung             ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+[1/4] Finding Java files...
+
+dev1-minh: 11 files
+  src/main/java/com/vtrip/booking/controller/BookingController.java
+  src/main/java/com/vtrip/booking/dto/request/CreateBookingRequestDto.java
+  src/main/java/com/vtrip/booking/dto/request/UpdateBookingRequestDto.java
+  src/main/java/com/vtrip/booking/dto/response/BookingResponseDto.java
+  src/main/java/com/vtrip/booking/entity/Booking.java
+  src/main/java/com/vtrip/booking/entity/BookingStatus.java
+  src/main/java/com/vtrip/booking/exception/NotFoundException.java
+  src/main/java/com/vtrip/booking/mapper/BookingMapper.java
+  src/main/java/com/vtrip/booking/repository/BookingRepository.java
+  src/main/java/com/vtrip/booking/service/BookingService.java
+  src/main/java/com/vtrip/booking/service/impl/BookingServiceImpl.java
+
+dev2-linh: 11 files
+  src/main/java/com/vtrip/booking/controller/BookingController.java
+  src/main/java/com/vtrip/booking/dto/request/CreateBookingRequestDto.java
+  src/main/java/com/vtrip/booking/dto/request/UpdateBookingRequestDto.java
+  src/main/java/com/vtrip/booking/dto/response/BookingResponseDto.java
+  src/main/java/com/vtrip/booking/entity/Booking.java
+  src/main/java/com/vtrip/booking/entity/BookingStatus.java
+  src/main/java/com/vtrip/booking/exception/NotFoundException.java
+  src/main/java/com/vtrip/booking/mapper/BookingMapper.java
+  src/main/java/com/vtrip/booking/repository/BookingRepository.java
+  src/main/java/com/vtrip/booking/service/BookingService.java
+  src/main/java/com/vtrip/booking/service/impl/BookingServiceImpl.java
+
+dev3-hung: 11 files
+  src/main/java/com/vtrip/booking/controller/BookingController.java
+  src/main/java/com/vtrip/booking/dto/request/CreateBookingRequestDto.java
+  src/main/java/com/vtrip/booking/dto/request/UpdateBookingRequestDto.java
+  src/main/java/com/vtrip/booking/dto/response/BookingResponseDto.java
+  src/main/java/com/vtrip/booking/entity/Booking.java
+  src/main/java/com/vtrip/booking/entity/BookingStatus.java
+  src/main/java/com/vtrip/booking/exception/NotFoundException.java
+  src/main/java/com/vtrip/booking/mapper/BookingMapper.java
+  src/main/java/com/vtrip/booking/repository/BookingRepository.java
+  src/main/java/com/vtrip/booking/service/BookingService.java
+  src/main/java/com/vtrip/booking/service/impl/BookingServiceImpl.java
+
+═══════════════════════════════════════════════════════════════════════════
+[2/4] DIFF COMPARISON
+═══════════════════════════════════════════════════════════════════════════
+
+── dev1-minh vs dev2-linh ──
+  ✓ BookingController.java: IDENTICAL
+  ✓ CreateBookingRequestDto.java: IDENTICAL
+  ✓ UpdateBookingRequestDto.java: IDENTICAL
+  ✓ BookingResponseDto.java: IDENTICAL
+  ✓ Booking.java: IDENTICAL
+  ✓ BookingStatus.java: IDENTICAL
+  ✓ NotFoundException.java: IDENTICAL
+  ✓ BookingMapper.java: IDENTICAL
+  ✓ BookingRepository.java: IDENTICAL
+  ✓ BookingService.java: IDENTICAL
+  ✓ BookingServiceImpl.java: IDENTICAL
+
+── dev1-minh vs dev3-hung ──
+  ✓ BookingController.java: IDENTICAL
+  ✓ CreateBookingRequestDto.java: IDENTICAL
+  ✓ UpdateBookingRequestDto.java: IDENTICAL
+  ✓ BookingResponseDto.java: IDENTICAL
+  ✓ Booking.java: IDENTICAL
+  ✓ BookingStatus.java: IDENTICAL
+  ✓ NotFoundException.java: IDENTICAL
+  ✓ BookingMapper.java: IDENTICAL
+  ✓ BookingRepository.java: IDENTICAL
+  ✓ BookingService.java: IDENTICAL
+  ✓ BookingServiceImpl.java: IDENTICAL
+
+═══════════════════════════════════════════════════════════════════════════
+[3/4] MD5 CHECKSUMS
+═══════════════════════════════════════════════════════════════════════════
+
+  BookingController.java:
+    dev1-minh: 4b0d6e15fc3c17ff1a548325308f79ad
+    dev2-linh: 4b0d6e15fc3c17ff1a548325308f79ad
+    dev3-hung: 4b0d6e15fc3c17ff1a548325308f79ad
+    → ALL MATCH
+
+  CreateBookingRequestDto.java:
+    dev1-minh: 669805b19ee5f157bbff4b85afd8e63a
+    dev2-linh: 669805b19ee5f157bbff4b85afd8e63a
+    dev3-hung: 669805b19ee5f157bbff4b85afd8e63a
+    → ALL MATCH
+
+  UpdateBookingRequestDto.java:
+    dev1-minh: 199c46dc9cff2ed5ffa4ded314efe12d
+    dev2-linh: 199c46dc9cff2ed5ffa4ded314efe12d
+    dev3-hung: 199c46dc9cff2ed5ffa4ded314efe12d
+    → ALL MATCH
+
+  BookingResponseDto.java:
+    dev1-minh: 6088efe617710791682c9584d243dcfa
+    dev2-linh: 6088efe617710791682c9584d243dcfa
+    dev3-hung: 6088efe617710791682c9584d243dcfa
+    → ALL MATCH
+
+  Booking.java:
+    dev1-minh: a8a69dd3da2c27e8261c6fdaaf06b32e
+    dev2-linh: a8a69dd3da2c27e8261c6fdaaf06b32e
+    dev3-hung: a8a69dd3da2c27e8261c6fdaaf06b32e
+    → ALL MATCH
+
+  BookingStatus.java:
+    dev1-minh: ca907f97f8ca015519bd189cc6dddb7c
+    dev2-linh: ca907f97f8ca015519bd189cc6dddb7c
+    dev3-hung: ca907f97f8ca015519bd189cc6dddb7c
+    → ALL MATCH
+
+  NotFoundException.java:
+    dev1-minh: 880a80be55ba96eea40f68b553bc0837
+    dev2-linh: 880a80be55ba96eea40f68b553bc0837
+    dev3-hung: 880a80be55ba96eea40f68b553bc0837
+    → ALL MATCH
+
+  BookingMapper.java:
+    dev1-minh: eb05b5ea720ebaa72a211c0c455e539d
+    dev2-linh: eb05b5ea720ebaa72a211c0c455e539d
+    dev3-hung: eb05b5ea720ebaa72a211c0c455e539d
+    → ALL MATCH
+
+  BookingRepository.java:
+    dev1-minh: 1bc3038969fff7d07a2c37fe943cbcab
+    dev2-linh: 1bc3038969fff7d07a2c37fe943cbcab
+    dev3-hung: 1bc3038969fff7d07a2c37fe943cbcab
+    → ALL MATCH
+
+  BookingService.java:
+    dev1-minh: c4de65a78028ed57080fd4aae124b9dd
+    dev2-linh: c4de65a78028ed57080fd4aae124b9dd
+    dev3-hung: c4de65a78028ed57080fd4aae124b9dd
+    → ALL MATCH
+
+  BookingServiceImpl.java:
+    dev1-minh: ae97170473cf38a8da31ab23cec660f4
+    dev2-linh: ae97170473cf38a8da31ab23cec660f4
+    dev3-hung: ae97170473cf38a8da31ab23cec660f4
+    → ALL MATCH
+
+═══════════════════════════════════════════════════════════════════════════
+[4/4] PATTERN CHECK
+═══════════════════════════════════════════════════════════════════════════
+
+DI Pattern:
+  dev1-minh: @RequiredArgsConstructor
+  dev2-linh: @RequiredArgsConstructor
+  dev3-hung: @RequiredArgsConstructor
+
+Exception Type:
+  dev1-minh: NotFoundException
+  dev2-linh: NotFoundException
+  dev3-hung: NotFoundException
+
+═══════════════════════════════════════════════════════════════════════════
+FINAL RESULT
+═══════════════════════════════════════════════════════════════════════════
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║   ✅ SUCCESS: All 3 developers have IDENTICAL CODE!                     ║
+║                                                                          ║
+║   dev1-minh = dev2-linh = dev3-hung                                     ║
+║                                                                          ║
+║   AI Toolkit rules enforced 100% consistency!                           ║
+║                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+================================================================================
+VERIFICATION DATE: 2025-01-15
+================================================================================
+
+SUMMARY:
+- Total files compared: 11 per developer (33 total)
+- Identical files: 11/11 (100%)
+- MD5 checksums: ALL MATCH
+- Patterns enforced:
+  • @RequiredArgsConstructor (not @Autowired)
+  • NotFoundException (custom exception)
+  • Instant for timestamps (not LocalDateTime)
+  • Page<T> for pagination (not List<T>)
+  • MapStruct mapper with updateEntityFromDto()
+
+FILES MD5 CHECKSUMS:
+┌─────────────────────────────────┬──────────────────────────────────┐
+│ File                            │ MD5 Hash                         │
+├─────────────────────────────────┼──────────────────────────────────┤
+│ BookingController.java          │ 4b0d6e15fc3c17ff1a548325308f79ad │
+│ CreateBookingRequestDto.java    │ 669805b19ee5f157bbff4b85afd8e63a │
+│ UpdateBookingRequestDto.java    │ 199c46dc9cff2ed5ffa4ded314efe12d │
+│ BookingResponseDto.java         │ 6088efe617710791682c9584d243dcfa │
+│ Booking.java                    │ a8a69dd3da2c27e8261c6fdaaf06b32e │
+│ BookingStatus.java              │ ca907f97f8ca015519bd189cc6dddb7c │
+│ NotFoundException.java          │ 880a80be55ba96eea40f68b553bc0837 │
+│ BookingMapper.java              │ eb05b5ea720ebaa72a211c0c455e539d │
+│ BookingRepository.java          │ 1bc3038969fff7d07a2c37fe943cbcab │
+│ BookingService.java             │ c4de65a78028ed57080fd4aae124b9dd │
+│ BookingServiceImpl.java         │ ae97170473cf38a8da31ab23cec660f4 │
+└─────────────────────────────────┴──────────────────────────────────┘

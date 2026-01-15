@@ -1,12 +1,14 @@
 ---
-description: 
+description: Core architecture patterns and structure - MANDATORY
 globs: 
 alwaysApply: true
 ---
 
 # Core Architecture - VTrip Microservices
 
-## ⚠️ CRITICAL: Package Structure (PHẢI TUÂN THỦ CHÍNH XÁC)
+> **PRIORITY: HIGH** - These patterns are MANDATORY. See `00-strict-standards.mdc` for enforcement details.
+
+## ⚠️ CRITICAL: Package Structure (BẮT BUỘC TUÂN THỦ CHÍNH XÁC)
 
 Khi tạo code mới, **BẮT BUỘC** phải tạo đúng cấu trúc folder sau:
 
@@ -22,7 +24,8 @@ src/main/java/com/vtrip/{service-name}/
 │   └── response/              # Response DTOs
 │       └── {Entity}ResponseDto.java
 ├── entity/                    # JPA Entities
-│   └── {Entity}.java
+│   ├── {Entity}.java
+│   └── {Entity}Status.java    # Enum for status
 ├── exception/                 # Custom exceptions
 │   └── NotFoundException.java
 ├── mapper/                    # MapStruct mappers
@@ -35,11 +38,16 @@ src/main/java/com/vtrip/{service-name}/
         └── {Entity}ServiceImpl.java  # Implementation
 ```
 
-## ⛔ KHÔNG ĐƯỢC:
+## ⛔ FORBIDDEN - KHÔNG ĐƯỢC:
+
 - Đặt tất cả files trong 1 folder duy nhất
 - Bỏ qua folder `impl/` cho Service implementation
 - Đặt DTO flat, không có subfolder request/response
 - Tự đặt tên file khác với pattern trên
+- Sử dụng `@Autowired` thay vì `@RequiredArgsConstructor`
+- Sử dụng `LocalDateTime` cho timestamps (PHẢI dùng `Instant`)
+- Sử dụng `String` cho status fields (PHẢI dùng `enum`)
+- Sử dụng `List<T>` cho pagination (PHẢI dùng `Page<T>`)
 
 ## ✅ VÍ DỤ ĐÚNG cho BookingService:
 
@@ -54,7 +62,10 @@ src/main/java/com/vtrip/booking/
 │   └── response/
 │       └── BookingResponseDto.java
 ├── entity/
-│   └── Booking.java
+│   ├── Booking.java
+│   └── BookingStatus.java
+├── exception/
+│   └── NotFoundException.java
 ├── mapper/
 │   └── BookingMapper.java
 ├── repository/
@@ -65,47 +76,124 @@ src/main/java/com/vtrip/booking/
         └── BookingServiceImpl.java
 ```
 
+---
+
 ## Layered Architecture Rules
 
-1. **Controller Layer**
-   - Chỉ xử lý HTTP request/response
-   - Validate input bằng `@Valid`
-   - KHÔNG chứa business logic
+### 1. Controller Layer
+- Chỉ xử lý HTTP request/response
+- Validate input bằng `@Valid`
+- KHÔNG chứa business logic
+- **BẮT BUỘC** có OpenAPI annotations (`@Tag`, `@Operation`, `@ApiResponses`)
 
-2. **Service Layer**
-   - Interface + Implementation pattern (BẮT BUỘC)
-   - `@Transactional` cho write operations
-   - `@Transactional(readOnly = true)` cho read operations
+### 2. Service Layer
+- Interface + Implementation pattern (BẮT BUỘC)
+- `@Transactional` cho write operations
+- `@Transactional(readOnly = true)` cho read operations
+- **BẮT BUỘC** có `@Slf4j` cho logging
+- **BẮT BUỘC** dùng `Page<T>` cho list operations
 
-3. **Repository Layer**
-   - Extend `JpaRepository<Entity, Long>`
-   - Custom queries dùng `@Query`
+### 3. Repository Layer
+- Extend `JpaRepository<Entity, Long>`
+- Custom queries dùng `@Query`
+- **BẮT BUỘC** có `@Repository` annotation
+
+---
 
 ## Dependency Injection (BẮT BUỘC)
 
 ```java
 // ✅ ĐÚNG - Constructor injection với Lombok
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final BookingMapper bookingMapper;
 }
 
-// ❌ SAI - Field injection
+// ❌ SAI - Field injection (FORBIDDEN)
 @Autowired
 private BookingRepository bookingRepository;
 ```
+
+---
+
+## Entity Audit Fields (BẮT BUỘC)
+
+Mọi entity PHẢI có các fields sau:
+
+```java
+@Id
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+private Long id;
+
+// ... entity-specific fields ...
+
+@CreationTimestamp
+@Column(name = "created_at", nullable = false, updatable = false)
+private Instant createdAt;  // PHẢI là Instant, KHÔNG dùng LocalDateTime
+
+@UpdateTimestamp
+@Column(name = "updated_at")
+private Instant updatedAt;  // PHẢI là Instant, KHÔNG dùng LocalDateTime
+
+@Version
+private Long version;
+```
+
+---
+
+## Status Enum Pattern (BẮT BUỘC)
+
+```java
+// ✅ ĐÚNG - Enum cho status
+public enum BookingStatus {
+    PENDING,
+    CONFIRMED,
+    CANCELLED,
+    COMPLETED
+}
+
+// Trong Entity:
+@Enumerated(EnumType.STRING)
+@Column(nullable = false, length = 20)
+private BookingStatus status;
+
+// ❌ SAI - String cho status (FORBIDDEN)
+private String status;
+```
+
+---
 
 ## Naming Conventions
 
 | Type | Pattern | Example |
 |------|---------|---------|
 | Entity | `{Name}` | `Booking` |
+| Status Enum | `{Name}Status` | `BookingStatus` |
 | Controller | `{Name}Controller` | `BookingController` |
 | Service Interface | `{Name}Service` | `BookingService` |
 | Service Impl | `{Name}ServiceImpl` | `BookingServiceImpl` |
 | Repository | `{Name}Repository` | `BookingRepository` |
 | Mapper | `{Name}Mapper` | `BookingMapper` |
-| Request DTO | `Create{Name}RequestDto` | `CreateBookingRequestDto` |
+| Create Request DTO | `Create{Name}RequestDto` | `CreateBookingRequestDto` |
+| Update Request DTO | `Update{Name}RequestDto` | `UpdateBookingRequestDto` |
 | Response DTO | `{Name}ResponseDto` | `BookingResponseDto` |
+| Exception | `{Name}Exception` | `NotFoundException` |
+
+---
+
+## Template Files Reference
+
+Xem các template chuẩn trong `.cursor/rules/templates/`:
+
+- `entity-template.java` - Entity pattern
+- `dto-request-template.java` - Request DTO pattern
+- `dto-response-template.java` - Response DTO pattern
+- `mapper-template.java` - MapStruct mapper pattern
+- `service-template.java` - Service implementation pattern
+- `service-interface-template.java` - Service interface pattern
+- `controller-template.java` - Controller pattern
+- `repository-template.java` - Repository pattern
+- `exception-template.java` - Exception pattern

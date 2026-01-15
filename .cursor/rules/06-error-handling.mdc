@@ -1,12 +1,105 @@
 ---
-description: 
+description: Error handling standards - MANDATORY
 globs: 
 alwaysApply: true
 ---
 
-# Error Handling Standards
+# Error Handling Standards - MANDATORY
 
-## Exception Hierarchy
+> **PRIORITY: HIGH** - Exception patterns shown here are MANDATORY.
+
+## ⛔ FORBIDDEN Exception Usage
+
+```java
+// ❌ WRONG - Direct constructor without entity context
+throw new NotFoundException("Booking not found");
+
+// ❌ WRONG - Generic exception message
+throw new RuntimeException("Error occurred");
+```
+
+## ✅ MANDATORY Exception Usage
+
+```java
+// ✅ CORRECT - Use forEntity() factory method
+throw NotFoundException.forEntity("Booking", id);
+
+// This produces: "Booking not found with id: 123"
+```
+
+---
+
+## NotFoundException Template (COPY EXACTLY)
+
+```java
+package com.vtrip.{servicename}.exception;
+
+/**
+ * Exception thrown when an entity is not found.
+ * MANDATORY: Use forEntity() factory method in services.
+ */
+public class NotFoundException extends RuntimeException {
+
+    public NotFoundException(String message) {
+        super(message);
+    }
+
+    /**
+     * Factory method for entity not found errors.
+     * 
+     * @param entityName The name of the entity (e.g., "Booking", "User")
+     * @param id The ID that was not found
+     * @return NotFoundException with formatted message
+     */
+    public static NotFoundException forEntity(String entityName, Long id) {
+        return new NotFoundException(entityName + " not found with id: " + id);
+    }
+}
+```
+
+---
+
+## Service Usage Pattern (MANDATORY)
+
+```java
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class BookingServiceImpl implements BookingService {
+
+    @Override
+    @Transactional(readOnly = true)
+    public BookingResponseDto getById(Long id) {
+        return bookingRepository.findById(id)
+            .map(bookingMapper::toResponseDto)
+            .orElseThrow(() -> NotFoundException.forEntity("Booking", id));  // CORRECT
+    }
+
+    @Override
+    @Transactional
+    public BookingResponseDto update(Long id, UpdateBookingRequestDto request) {
+        var entity = bookingRepository.findById(id)
+            .orElseThrow(() -> NotFoundException.forEntity("Booking", id));  // CORRECT
+        
+        bookingMapper.updateEntityFromDto(entity, request);
+        var saved = bookingRepository.save(entity);
+        return bookingMapper.toResponseDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        if (!bookingRepository.existsById(id)) {
+            throw NotFoundException.forEntity("Booking", id);  // CORRECT
+        }
+        bookingRepository.deleteById(id);
+    }
+}
+```
+
+---
+
+## Exception Hierarchy (Reference)
 
 ```
 BusinessException (abstract)
@@ -20,7 +113,7 @@ BusinessException (abstract)
     └── TimeoutException
 ```
 
-## Base Exception Class
+## Base Exception Class (for full implementation)
 
 ```java
 @Getter
@@ -36,31 +129,6 @@ public abstract class BusinessException extends RuntimeException {
 }
 ```
 
-## Common Exceptions
-
-```java
-public class NotFoundException extends BusinessException {
-    public NotFoundException(String message) {
-        super(message, "NOT_FOUND", HttpStatus.NOT_FOUND);
-    }
-    
-    public static NotFoundException forEntity(String entityName, Object id) {
-        return new NotFoundException(
-            String.format("%s with id '%s' not found", entityName, id)
-        );
-    }
-}
-
-public class ValidationException extends BusinessException {
-    private final List<FieldError> fieldErrors;
-    
-    public ValidationException(List<FieldError> fieldErrors) {
-        super("Validation failed", "VALIDATION_ERROR", HttpStatus.BAD_REQUEST);
-        this.fieldErrors = fieldErrors;
-    }
-}
-```
-
 ## Global Exception Handler
 
 ```java
@@ -68,19 +136,19 @@ public class ValidationException extends BusinessException {
 @Slf4j
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex) {
-        log.error("Business exception: {}", ex.getMessage());
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFoundException(NotFoundException ex) {
+        log.error("Not found exception: {}", ex.getMessage());
         
         return ResponseEntity
-            .status(ex.getHttpStatus())
+            .status(HttpStatus.NOT_FOUND)
             .body(ErrorResponse.builder()
-                .code(ex.getErrorCode())
+                .code("NOT_FOUND")
                 .message(ex.getMessage())
                 .timestamp(Instant.now())
                 .build());
     }
-    
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(
             MethodArgumentNotValidException ex) {
@@ -121,6 +189,8 @@ public class GlobalExceptionHandler {
 ```java
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ErrorResponse {
     private String code;
     private String message;
@@ -137,10 +207,11 @@ public class FieldError {
 }
 ```
 
-## Best Practices
+---
 
-1. **Never expose stack traces** to clients in production
-2. **Log with correlation ID** for traceability
-3. **Use specific exception types** instead of generic Exception
-4. **Include error codes** for client-side handling
-5. **Validate early** at controller level with `@Valid`
+## Checklist Before Generating Exception Code
+
+- [ ] NotFoundException has `forEntity()` factory method
+- [ ] Services use `forEntity()` not direct constructor
+- [ ] Exception message includes entity name and ID
+- [ ] Delete operations check `existsById` before throwing

@@ -1,135 +1,188 @@
 ---
-description: OpenAPI/Swagger documentation cho REST APIs
-globs: **/*Controller.java
-alwaysApply: false
+description: OpenAPI/Swagger documentation - MANDATORY for all Controllers
+globs: 
+alwaysApply: true
 ---
 
-# API Documentation Standards
+# API Documentation Standards - MANDATORY
 
-## Controller Annotations
+> **PRIORITY: HIGH** - All controllers MUST include OpenAPI annotations.
+
+## ⛔ FORBIDDEN - Controller without OpenAPI annotations
+
+```java
+// ❌ WRONG - Missing @Tag
+@RestController
+@RequestMapping("/api/v1/bookings")
+@RequiredArgsConstructor
+public class BookingController {
+
+    // ❌ WRONG - Missing @Operation and @ApiResponses
+    @GetMapping("/{id}")
+    public ResponseEntity<BookingResponseDto> getById(@PathVariable Long id) {
+```
+
+## ✅ MANDATORY - Controller with full OpenAPI annotations
 
 ```java
 @RestController
-@RequestMapping("/api/v1/users")
-@Tag(name = "Users", description = "User management APIs")
-@Slf4j
+@RequestMapping("/api/v1/bookings")
+@Tag(name = "Bookings", description = "Booking management APIs")  // MANDATORY
 @RequiredArgsConstructor
-public class UserController {
+public class BookingController {
 
-    private final UserService userService;
-    
-    @Operation(
-        summary = "Get user by ID",
-        description = "Retrieves a user by their unique identifier"
-    )
-    @ApiResponses({
-        @ApiResponse(
-            responseCode = "200",
-            description = "User found",
-            content = @Content(schema = @Schema(implementation = UserResponseDto.class))
-        ),
-        @ApiResponse(
-            responseCode = "404",
-            description = "User not found",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))
-        )
+    private final BookingService bookingService;
+
+    @Operation(summary = "Get booking by ID")  // MANDATORY
+    @ApiResponses({                            // MANDATORY
+        @ApiResponse(responseCode = "200", description = "Booking found"),
+        @ApiResponse(responseCode = "404", description = "Booking not found")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponseDto> getUser(
-            @Parameter(description = "User ID", required = true)
-            @PathVariable Long id) {
-        return ResponseEntity.ok(userService.getUserById(id));
+    public ResponseEntity<BookingResponseDto> getById(
+            @Parameter(description = "Booking ID") @PathVariable Long id) {  // MANDATORY
+        return ResponseEntity.ok(bookingService.getById(id));
     }
-    
-    @Operation(summary = "Create new user")
-    @ApiResponse(responseCode = "201", description = "User created successfully")
+}
+```
+
+---
+
+## Controller Template (COPY EXACTLY)
+
+```java
+package com.vtrip.{servicename}.controller;
+
+import com.vtrip.{servicename}.dto.request.Create{Entity}RequestDto;
+import com.vtrip.{servicename}.dto.request.Update{Entity}RequestDto;
+import com.vtrip.{servicename}.dto.response.{Entity}ResponseDto;
+import com.vtrip.{servicename}.service.{Entity}Service;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/v1/{entities}")
+@Tag(name = "{Entity}s", description = "{Entity} management APIs")
+@RequiredArgsConstructor
+public class {Entity}Controller {
+
+    private final {Entity}Service {entity}Service;
+
+    @Operation(summary = "Get {entity} by ID")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "{Entity} found"),
+        @ApiResponse(responseCode = "404", description = "{Entity} not found")
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<{Entity}ResponseDto> getById(
+            @Parameter(description = "{Entity} ID") @PathVariable Long id) {
+        return ResponseEntity.ok({entity}Service.getById(id));
+    }
+
+    @Operation(summary = "List all {entities} with pagination")
+    @GetMapping
+    public ResponseEntity<Page<{Entity}ResponseDto>> findAll(Pageable pageable) {
+        return ResponseEntity.ok({entity}Service.findAll(pageable));
+    }
+
+    @Operation(summary = "Create new {entity}")
+    @ApiResponse(responseCode = "201", description = "{Entity} created successfully")
     @PostMapping
-    public ResponseEntity<UserResponseDto> createUser(
-            @Valid @RequestBody CreateUserRequestDto request) {
+    public ResponseEntity<{Entity}ResponseDto> create(
+            @Valid @RequestBody Create{Entity}RequestDto request) {
         return ResponseEntity
             .status(HttpStatus.CREATED)
-            .body(userService.createUser(request));
+            .body({entity}Service.create(request));
     }
-    
-    @Operation(summary = "List users with pagination")
-    @GetMapping
-    public ResponseEntity<Page<UserResponseDto>> listUsers(
-            @Parameter(description = "Page number (0-based)")
-            @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size")
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(userService.listUsers(PageRequest.of(page, size)));
+
+    @Operation(summary = "Update {entity}")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "{Entity} updated"),
+        @ApiResponse(responseCode = "404", description = "{Entity} not found")
+    })
+    @PutMapping("/{id}")
+    public ResponseEntity<{Entity}ResponseDto> update(
+            @Parameter(description = "{Entity} ID") @PathVariable Long id,
+            @Valid @RequestBody Update{Entity}RequestDto request) {
+        return ResponseEntity.ok({entity}Service.update(id, request));
+    }
+
+    @Operation(summary = "Delete {entity}")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "{Entity} deleted"),
+        @ApiResponse(responseCode = "404", description = "{Entity} not found")
+    })
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+            @Parameter(description = "{Entity} ID") @PathVariable Long id) {
+        {entity}Service.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
 ```
 
-## DTO Annotations
+---
+
+## Required Annotations Per Endpoint
+
+| HTTP Method | Required Annotations |
+|-------------|---------------------|
+| GET (single) | `@Operation`, `@ApiResponses` (200, 404), `@Parameter` |
+| GET (list) | `@Operation` |
+| POST | `@Operation`, `@ApiResponse` (201) |
+| PUT | `@Operation`, `@ApiResponses` (200, 404), `@Parameter` |
+| DELETE | `@Operation`, `@ApiResponses` (204, 404), `@Parameter` |
+
+---
+
+## Required Imports
 
 ```java
-@Data
-@Schema(description = "User creation request")
-public class CreateUserRequestDto {
-
-    @Schema(description = "User email address", example = "john@example.com")
-    @NotBlank(message = "Email is required")
-    @Email(message = "Invalid email format")
-    private String email;
-    
-    @Schema(description = "User full name", example = "John Doe")
-    @NotBlank(message = "Name is required")
-    @Size(min = 2, max = 100)
-    private String name;
-    
-    @Schema(description = "User phone number", example = "+84901234567")
-    @Pattern(regexp = "^\\+?[0-9]{10,15}$")
-    private String phone;
-}
-
-@Data
-@Schema(description = "User response")
-public class UserResponseDto {
-
-    @Schema(description = "User unique identifier", example = "12345")
-    private Long id;
-    
-    @Schema(description = "User email", example = "john@example.com")
-    private String email;
-    
-    @Schema(description = "User creation timestamp")
-    private Instant createdAt;
-}
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 ```
 
-## OpenAPI Configuration
+---
+
+## Controller Annotation Order (MANDATORY)
 
 ```java
-@Configuration
-public class OpenApiConfig {
-
-    @Bean
-    public OpenAPI customOpenAPI() {
-        return new OpenAPI()
-            .info(new Info()
-                .title("VTrip API")
-                .version("1.0.0")
-                .description("VTrip Microservices API Documentation")
-                .contact(new Contact()
-                    .name("VTrip Team")
-                    .email("tech@vtrip.com")))
-            .addSecurityItem(new SecurityRequirement().addList("Bearer"))
-            .components(new Components()
-                .addSecuritySchemes("Bearer", new SecurityScheme()
-                    .type(SecurityScheme.Type.HTTP)
-                    .scheme("bearer")
-                    .bearerFormat("JWT")));
-    }
-}
+@RestController
+@RequestMapping("/api/v1/{entities}")
+@Tag(name = "{Entity}s", description = "{Entity} management APIs")
+@RequiredArgsConstructor
+public class {Entity}Controller {
 ```
 
-## Best Practices
+---
 
-1. **Every endpoint** must have `@Operation` annotation
-2. **Response codes** explicitly documented with `@ApiResponse`
-3. **DTOs** annotated with `@Schema` for examples
-4. **Parameters** have `@Parameter` description
-5. **Validation** messages match API documentation
+## Checklist Before Generating Controller
+
+- [ ] `@Tag` on class with name and description
+- [ ] `@Operation` on every endpoint
+- [ ] `@ApiResponses` for GET/PUT/DELETE endpoints
+- [ ] `@ApiResponse` with 201 for POST endpoints
+- [ ] `@Parameter` for all `@PathVariable` parameters
+- [ ] `Page<T>` return type for list endpoints (not List<T>)
+- [ ] `Pageable` parameter for list endpoints
+- [ ] `@Valid` on all `@RequestBody` parameters
